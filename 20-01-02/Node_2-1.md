@@ -151,3 +151,139 @@ const relationship2 = {
 }
 realationship2.logfriends()
 ~~~~~
+
+# 2.1.5 비구조화 할당
+
+객체와 배열로부터 속성이나 요소를 쉽게 꺼낼 수 있다.
+~~~~~javascript
+var candyMachine = {
+    status: {
+        name: 'node',
+        count : 5,
+    },
+    getCandy : function(){
+        this.status.count--;
+        return this.status.count;
+    }
+};
+var getCandy = candyMachine.getCandy;
+var count = candyMachine.status.count;
+//객체의 속성을 같은 이름의 변수에 대입하는 코드이다. 이를 다음과 같이 변경 가능
+
+const candyMachine2 = {
+    status : {
+        name:'node',
+        count:5,
+    },
+    getCandy(){
+        this.status.count--;
+        return  this.status.count;
+    }
+};
+const {getCandy, status:{ count }} = candyMachine;
+~~~~~
+
+# 2.1.6 프로미스
+자바스크립트와 노드에서는 주로 비동기 프로그래밍을 한다. 특히 이벤트 주도 방식 때문에 콜백 함수를 자주 사요한다. ES2015 부터는 자바스크립트와 노드의 API들이 콜백 대신 프로미스 기반으로 재구성 되었다. 이를 통해 콜백 헬 을 극복했다고 한다.
+
+**프로미스 예제**
+~~~~~javascript
+const condition = true; //true 면 resolve, false면 reject
+const promise = new Promise((resolve,reject) =>{ // --(1) new Promise 로 프로미스를 생성, 안에 resolve와 reject를 매개변수로 갖는 콜백 함수를 넣어줌
+    if(condition) {
+        resolve('성공');
+    } else {
+        reject('실패');
+    }
+});
+
+promise //--(2) 이렇게 만든 promise 변수에 then과 catch 메서드를 붙일 수 있음 
+    .then ((message)=>{//resolve가 호출시 then 실행
+        console.log(message); // 성공(resolve)한 경우 실행
+    })
+    .catch((error)=>{//reject가 호출시 catch 실행
+        console.error(error); //실패(reject) 한 경우 실행
+    })
+
+//then이나 catch에서 다시 다른 then 이나 catch를 붙일 수 있다.
+promise
+    .then((message)=>{
+        return new Promise((resolve,reject) =>{// 다른 then에 then을 붙이기 위해 return 값을 만들어 넘겨준다
+        //프로미스를 return 한 경우 프로미스가 수행된 후 다음 then이나 catch가 호출된다.
+            resolve(message);
+        });
+    })
+    .then((message2) =>{
+        console.log(message2);
+        return new Promise ((resolve,reject)=>{
+            resolve(message2);
+        });
+    })
+    .then((message3)=>{
+        console.log(message3);
+    })
+    .catch((error)=>{
+        console.error(error);
+    });
+~~~~~
+
+이것을 활용해서 콜백을 프로미스로 바꿀 수 있다.
+**<콜백을 쓰는 패턴을 프로미스로 바꿔보자>**
+~~~~~javascript
+//콜백 패턴
+function findAndSaveUser(Users){
+    Users.findOne({},(err,user) =>{// 첫번째 콜백
+    if(err) {
+        return console.error(err);
+    }
+    user.name = 'zero';
+    user.save((err)=>{// 두번째 콜백
+        if(err){
+            return console.error(err);
+        }
+        Users.findOne({gender:'m'}, (err,user)=>{// 세번째 콜백
+            //생략
+        });
+    });
+    });
+}
+//콜백 함수가 세번 중첩되어 있다. 콜백 함수가 나올 때마다 코드의 깊이가 깊어진다.
+//각 콜백 함수마다 에러도 따로 처리해야한다. 이것을 다음과 같이 바꿀수 있음
+~~~~~
+
+~~~~~javascript
+// 프로미스를 통한 콜백 함수 해결
+function findAndSaveUser(Users){
+    Userse.findOne({})
+        .then((user)=>{
+            user.name ='zero';
+            return user.save();
+        })
+        .then((user)=>{
+            return Users.findOne({ gender: 'm'});
+        })
+        .then((user)=>{
+            //생략
+        })
+        .catch(err =>{
+            console.error(err);
+        });
+}
+~~~~~
+코드의 깊이가 더 이상 깊어지지 않습니다. then 메서드들은 순차적으로 실행이 된다. 콜백에서 매번 따로 처리해야 했던 에러도 마지막 catch에서 한번에 처리할 수 있다.
+하지만 모든 콜백 함수를 위와 같이 바꿀 수 있는 것은 아니다. 메서드가 프로미스 방식을 지원해야 한다.
+예제의 코드는 findOne과 save 메서드가 내부적으로 프로미스 객체를 가지고 있어서 가능한 것이다.
+
+프로미스 여러 개를 한번에 실행하는 방법
+~~~~~javascript
+const promise1 = Promise.resolve('성공1');
+const promise2 = Promise.resolve('성공2');
+Promise.all([promise1,promise2])
+    .then((result) =>{
+        console.log(result); //['성공1','성공2']
+    })
+    .catch((error)=>{
+        console.error(error);
+    })
+~~~~~
+Promise.resolve는 즉시 resolve 하는 프로미스를 만드는 방법이다. 비슷한 것으로 즉시 reject하는 Promise.reject도 있다. 프로미스가 여러 개 있을 때 Promise.all에 넣으면 모두 resolve 될 때까지 기다렸다가 then으로 넘어갑니다. result 매개변수에 각각의 프로미스 결괏값이 배열로 들어 있다. promise중 하나라도 reject가 되면 catch 로 넘어간다
