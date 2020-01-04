@@ -287,3 +287,74 @@ Promise.all([promise1,promise2])
     })
 ~~~~~
 Promise.resolve는 즉시 resolve 하는 프로미스를 만드는 방법이다. 비슷한 것으로 즉시 reject하는 Promise.reject도 있다. 프로미스가 여러 개 있을 때 Promise.all에 넣으면 모두 resolve 될 때까지 기다렸다가 then으로 넘어갑니다. result 매개변수에 각각의 프로미스 결괏값이 배열로 들어 있다. promise중 하나라도 reject가 되면 catch 로 넘어간다
+
+# 2.1.7 async/await
+
+async/await 문법은 프로미스를 사용한 코드를 한 번 더 깔끔하게 만들어 준다.
+**[2.1.6 프로미스 예제]**
+~~~~~javascript
+// 프로미스를 통한 콜백 함수 해결
+function findAndSaveUser(Users){
+    Userse.findOne({})
+        .then((user)=>{
+            user.name ='zero';
+            return user.save();
+        })
+        .then((user)=>{
+            return Users.findOne({ gender: 'm'});
+        })
+        .then((user)=>{
+            //생략
+        })
+        .catch(err =>{
+            console.error(err);
+        });
+}
+~~~~~
+
+**[async/await 문법을 사용]**
+~~~~~javascript
+async function findAndSaveUser(Users){ //기존의 function대신 async를 붙여줌
+    let user = await Users.findOne({}); //프로미스 앞에 await를 붙여줌 이를 통해 해당 프로미스가 resolve될 때까지 기다린 뒤 다음 로직으로 넘어간다.
+    // await Users.findOne({})이 resolve될 때까지 기다린 뒤, user 변수를 초기화 하느 것이다.
+    user.name = 'zero';
+    user = await user.save();
+    user = await Users.findOne({ gender: 'm'});
+    //생략
+    //위에 코드는 ERROR 처리 부분이 없어 추가 작업이 필요
+}
+~~~~~
+코드가 매우 짧아진것을 확인 할 수 있다. 함수 선언부를 일반 함수 대신 async function 으로 교체한 후, 프로미스 앞에 await을 붙여주었다.
+
+**[추가 작업]**
+~~~~~javascript
+async function findAndSaveUser(Users){
+    try{
+        let user = await Users.findOne({});
+        user.name = 'zero';
+        user = await user.save();
+        user = await Userse.findOne({ gender: 'm'});
+        //생략
+    } catch (error){
+        console.error(error);
+    }
+}
+~~~~~
+try/catch 문으로 로직을 감쌌다. 프로미스의 catch 메서드 처럼 try/catch문의 catch가 에러를 처리한다.
+
+**[화살표 함수 async/await 사용]**
+~~~~~javascript
+const findAndSaveUser = async (Users) =>{
+    try{
+        let user = await Users.findOne({});
+        user.name = 'zero';
+        user = await user.save();
+        user = await Users.findOne({ gender : 'm'});
+        //생략
+    } catch (error){
+        console.error(error);
+    }
+};
+~~~~~
+
+이와 같이 콜백을 프로미스로, 프로미스를 다시 async/await를 바꾸는 훈련을 통해 익숙해 지는 것이 중요하다
