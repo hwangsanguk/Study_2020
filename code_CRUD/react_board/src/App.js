@@ -1,4 +1,7 @@
 import React, { Component } from 'react';
+import BoardForm from './BoardForm';
+import BoardItem from './BoardRow';
+
 
 class App extends Component {
   state = { //변수를 선언
@@ -172,4 +175,31 @@ class BoardForm extends Component{
   }
 }
 
-export default App2;
+class App6 extends Component{
+  state= {
+    maxNo: 3,
+    boards:[],
+    selectedBoard:{}
+  }
+  handleSelectRow = (row)=>{
+    this.setState({selectedBoard:row});
+  }
+
+  render() {
+    const{ boards, selectedBoard} = this.state;
+    return(
+      <div>
+        <BoardForm selectedBoard={selectedBoard} onSaveData={this.handleSaveData} />
+        <table border="1">
+          {
+            boards.map(row=>
+                (<BoardItem key={row.brdno} row={row} onRemove={this.handleRemove} onSelectRow={this.handleSelectRow} />))
+          }
+      
+        </table>
+      </div>
+    )
+  }
+}
+
+export default App6;
